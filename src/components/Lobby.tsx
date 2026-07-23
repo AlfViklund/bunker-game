@@ -19,7 +19,7 @@ export default function Lobby({ room, players, currentUserId, onStartGame }: Lob
   const [loading, setLoading] = useState(false);
 
   const me = players.find((p) => p.user_id === currentUserId);
-  const isHost = me?.is_host || false;
+  const isHost = me?.is_host || (players.length > 0 && (players[0].user_id === currentUserId || !me));
   const allReady = players.length >= 2 && players.every((p) => p.is_ready);
 
   const handleToggleReady = async () => {

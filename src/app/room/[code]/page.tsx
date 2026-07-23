@@ -197,7 +197,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
   };
 
   const me = players.find((p) => p.user_id === currentUserId);
-  const isHost = me?.is_host || false;
+  const isHost = me?.is_host || (players.length > 0 && players[0].user_id === currentUserId);
 
   if (loading || !room) {
     return (
