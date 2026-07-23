@@ -1,6 +1,6 @@
 export type RoomStatus = 'lobby' | 'reveal_round' | 'debate' | 'voting' | 'epilogue';
 
-export type BotPersonality = 'panic' | 'cynic' | 'strategist';
+export type BotPersonality = 'panic' | 'cynic' | 'strategist' | 'unique';
 
 export interface Room {
   id: string;

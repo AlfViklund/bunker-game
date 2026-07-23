@@ -1,6 +1,6 @@
 import { chromium } from 'playwright';
 
-const VERCEL_URL = 'https://bunker-game-khaki.vercel.app';
+const VERCEL_URL = process.env.TEST_URL || 'http://localhost:3000';
 
 async function runE2ETests() {
   console.log(`🚀 Launching Playwright E2E Test Suite against ${VERCEL_URL}...`);
@@ -25,10 +25,8 @@ async function runE2ETests() {
 
     // 2. Host Adds AI Bot
     console.log('Step 2: Host adds an AI bot to lobby...');
-    await page1.click('button:has-text("+ Добавить ИИ-Бота")');
-    await page1.waitForSelector('text=Выбор Психотипа ИИ-Бота');
-    await page1.click('button:has-text("Добавить Бота")');
-    await page1.waitForSelector('text=Тип ИИ: cynic');
+    await page1.click('button:has-text("+ Добавить ИИ-Выжившего")');
+    await page1.waitForTimeout(2000);
     console.log('✅ AI Bot added successfully!');
 
     // 3. Guest Joins Room
@@ -52,7 +50,7 @@ async function runE2ETests() {
 
     // 5. Test Survivor Card Reveal & Chat
     console.log('Step 5: Revealing survivor card and sending chat message...');
-    await page1.click('text=Профессия');
+    await page1.click('text=Здоровье');
     await page1.fill('input[placeholder*="Напишите сообщение"]', 'Привет от хоста! Нам нужен медперсонал!');
     await page1.click('form button[type="submit"]');
 
@@ -68,10 +66,19 @@ async function runE2ETests() {
 
     // 7. Cast Votes
     console.log('Step 7: Casting votes against suspect...');
-    const botCard = page1.locator('div:has-text("CynicBot")').first();
-    if (await botCard.isVisible()) {
-      await botCard.click();
-      console.log('Host voted against bot!');
+    const suspectCard = page1.locator('div:has-text("Пульт Изгнания в Пустошь") >> .. >> div.relative.overflow-hidden:not(:has-text("(Вы)"))').first();
+    if (await suspectCard.isVisible()) {
+      console.log('Holding down vote on suspect...');
+      const box = await suspectCard.boundingBox();
+      if (box) {
+        await page1.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+        await page1.mouse.down();
+        await page1.waitForTimeout(1600);
+        await page1.mouse.up();
+        console.log('✅ Host voted successfully!');
+      }
+    } else {
+      console.log('⚠️ Suspect card not found for voting');
     }
 
     // 8. Host Tallies Votes

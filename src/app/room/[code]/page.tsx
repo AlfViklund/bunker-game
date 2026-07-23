@@ -24,6 +24,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [userNickname, setUserNickname] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
+  const [triggeredBotVotes, setTriggeredBotVotes] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const { userId: uid, nickname: nick } = getOrCreateGuestUser();
@@ -89,7 +90,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
     const botPlayers = players.filter((p) => p.is_bot && !p.is_eliminated);
     if (botPlayers.length === 0) return;
 
-    // Trigger initial speeches
+    // Trigger initial speeches with staggered delays
     botPlayers.forEach((bot, idx) => {
       setTimeout(() => {
         fetch('/api/bot-turn', {
@@ -101,7 +102,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
             phase: 'debate',
           }),
         }).catch((err) => console.warn('Bot speech error:', err));
-      }, idx * 2500);
+      }, idx * 4500 + 1500);
     });
 
     // Periodic autonomous bot banter interval every 14 seconds
@@ -123,6 +124,49 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
 
     return () => clearInterval(interval);
   }, [room?.status, room?.id, players, currentUserId]);
+
+  // Reset triggered votes when transitioning to voting
+  useEffect(() => {
+    if (room?.status !== 'voting') {
+      setTriggeredBotVotes({});
+    }
+  }, [room?.status]);
+
+  // Autonomous AI Bot voting trigger
+  useEffect(() => {
+    if (!room || room.status !== 'voting' || !players.length) return;
+    const me = players.find((p) => p.user_id === currentUserId);
+    if (!me?.is_host) return;
+
+    const botPlayers = players.filter((p) => p.is_bot && !p.is_eliminated);
+    const botsToVote = botPlayers.filter(
+      (bot) => !votes.some((v) => v.voter_id === bot.user_id) && !triggeredBotVotes[bot.user_id]
+    );
+
+    if (botsToVote.length === 0) return;
+
+    // Mark as triggered immediately
+    const newTriggered = { ...triggeredBotVotes };
+    botsToVote.forEach((bot) => {
+      newTriggered[bot.user_id] = true;
+    });
+    setTriggeredBotVotes(newTriggered);
+
+    // Call API for each bot
+    botsToVote.forEach((bot, idx) => {
+      setTimeout(() => {
+        fetch('/api/bot-turn', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            roomId: room.id,
+            botUserId: bot.user_id,
+            phase: 'voting',
+          }),
+        }).catch((err) => console.warn('Bot voting error:', err));
+      }, idx * 1000);
+    });
+  }, [room?.status, room?.id, players, votes, triggeredBotVotes, currentUserId]);
 
   const fetchRoomData = async () => {
     const { data: rData } = await supabase.from('bunker_rooms').select('*').eq('code', code).single();

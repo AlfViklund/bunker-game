@@ -92,8 +92,9 @@ export default function Lobby({ room, players, currentUserId, onStartGame, onUpd
               className="w-full h-full object-cover transition-all duration-500 hover:scale-105"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent" />
-            <div className="absolute bottom-3 left-3 text-[10px] font-mono-data text-emerald-400 bg-zinc-950/80 px-2 py-1 rounded border border-zinc-800">
-              ГЕНЕРАЦИЯ ПОСТАПОКАЛИПСИСА: POLLINATIONS.AI
+            <div className="absolute bottom-3 left-3 text-[10px] font-mono-data text-amber-400 bg-zinc-950/90 px-2.5 py-1 rounded border border-zinc-800 flex items-center space-x-1.5 shadow">
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+              <span>СМОТРОВАЯ КАМЕРА: ЗОНА КАТАСТРОФЫ</span>
             </div>
           </div>
         )}
@@ -215,7 +216,7 @@ export default function Lobby({ room, players, currentUserId, onStartGame, onUpd
                       )}
                     </div>
                     {p.is_bot && p.backstory && (
-                      <div className="text-[11px] text-zinc-400 font-mono-data line-clamp-1 italic max-w-xs">
+                      <div className="text-[11px] text-zinc-400 font-mono-data italic mt-0.5 leading-tight">
                         «{p.backstory}»
                       </div>
                     )}

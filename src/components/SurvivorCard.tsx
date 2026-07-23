@@ -70,8 +70,12 @@ export default function SurvivorCard({ player, isCurrentPlayer, onRevealField }:
             <motion.div
               key={f.key}
               initial={false}
-              animate={{ rotateY: publicRevealed ? 0 : 0 }}
+              animate={{ 
+                rotateY: publicRevealed ? 360 : (isCurrentPlayer ? 0 : 180),
+                scale: publicRevealed ? [1, 1.05, 1] : 1
+              }}
               transition={{ duration: 0.4 }}
+              style={{ transformStyle: 'preserve-3d' }}
               whileHover={isCurrentPlayer && !publicRevealed ? { scale: 1.02 } : {}}
               onClick={() => {
                 if (isCurrentPlayer && !publicRevealed) {
@@ -86,7 +90,13 @@ export default function SurvivorCard({ player, isCurrentPlayer, onRevealField }:
                   : 'bg-zinc-800/30 border-zinc-800 text-zinc-500'
               }`}
             >
-              <div className="flex items-start space-x-2.5">
+              <div 
+                className="flex items-start space-x-2.5"
+                style={{
+                  transform: !publicRevealed && !isCurrentPlayer ? 'rotateY(180deg)' : 'none',
+                  backfaceVisibility: 'hidden'
+                }}
+              >
                 <Icon
                   className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
                     publicRevealed ? 'text-emerald-400' : isCurrentPlayer ? 'text-amber-400' : 'text-zinc-600'
@@ -102,7 +112,7 @@ export default function SurvivorCard({ player, isCurrentPlayer, onRevealField }:
                     ) : isCurrentPlayer ? (
                       <span className="text-[9px] bg-amber-950 text-amber-300 border border-amber-800 px-1 py-0.2 rounded flex items-center space-x-1">
                         <Eye className="w-2.5 h-2.5" />
-                        <span>КЛИК — ПОКАЗАТЬ</span>
+                        <span>КЛИК — ПОКАЗАТЬ ВСЕМ</span>
                       </span>
                     ) : (
                       <Lock className="w-3 h-3 text-zinc-600" />

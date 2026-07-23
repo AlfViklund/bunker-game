@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { generateRandomSurvivorCard } from '@/lib/cardBank';
-import { CATASTROPHE_PRESETS } from '@/lib/pollinations';
+import { generateDynamicCatastrophe } from '@/lib/pollinations';
 import FriendsSidebar from '@/components/FriendsSidebar';
 import { Shield, Play, Users, KeyRound, Radio, Sparkles } from 'lucide-react';
 
@@ -35,7 +35,7 @@ export default function HomePage() {
     setLoading(true);
 
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const catastrophe = CATASTROPHE_PRESETS[Math.floor(Math.random() * CATASTROPHE_PRESETS.length)];
+    const catastrophe = await generateDynamicCatastrophe();
     const card = generateRandomSurvivorCard();
 
     // Create Room
@@ -46,7 +46,7 @@ export default function HomePage() {
         status: 'lobby',
         catastrophe_title: catastrophe.title,
         catastrophe_desc: catastrophe.desc,
-        catastrophe_image_url: `https://image.pollinations.ai/prompt/${encodeURIComponent(catastrophe.imagePrompt)}?width=800&height=450&nologo=true`,
+        catastrophe_image_url: catastrophe.imageUrl,
         bunker_size: 3,
         max_players: 6,
       })

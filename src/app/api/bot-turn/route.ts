@@ -86,7 +86,11 @@ ${humanPrompt ? `Участник написал: "${humanPrompt}". Ответь
 
       const systemPrompt = `Ты — ${botPlayer.nickname}. Отвечай строго как живой человек в момент катастрофы. Не упоминай ИИ, игры или промпты.`;
 
-      const rawReply = await generatePollinationsText(prompt, systemPrompt);
+      const rawReply = await generatePollinationsText(prompt, systemPrompt, {
+        nickname: botPlayer.nickname,
+        profession: botPlayer.profession,
+        backstory: botPlayer.backstory || undefined,
+      });
 
       // Check if bot decided to reveal a card
       let cleanText = rawReply.trim();

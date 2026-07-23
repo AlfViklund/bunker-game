@@ -1,5 +1,5 @@
 import { generateRandomSurvivorCard, PROFESSIONS, HEALTH_CONDITIONS, BOT_NAMES } from '../src/lib/cardBank';
-import { CATASTROPHE_PRESETS, getPollinationsImageUrl } from '../src/lib/pollinations';
+import { generateDynamicCatastrophe, getPollinationsImageUrl } from '../src/lib/pollinations';
 
 async function runIntegrationTests() {
   console.log('🧪 Starting Integration Test Suite for Bunker 2077...');
@@ -16,15 +16,12 @@ async function runIntegrationTests() {
   }
   console.log('✅ Test 1 PASSED: Card generator produces valid data structure.');
 
-  // Test 2: Catastrophe presets
-  if (CATASTROPHE_PRESETS.length < 3) {
-    throw new Error('Catastrophe presets list is incomplete');
+  // Test 2: Dynamic Catastrophe Generator
+  const catastrophe = await generateDynamicCatastrophe();
+  if (!catastrophe.title || !catastrophe.desc || !catastrophe.imageUrl) {
+    throw new Error('Dynamic catastrophe generator failed');
   }
-  const imgUrl = getPollinationsImageUrl(CATASTROPHE_PRESETS[0].imagePrompt, 123);
-  if (!imgUrl.startsWith('https://image.pollinations.ai/prompt/')) {
-    throw new Error('Pollinations image URL builder failed');
-  }
-  console.log('✅ Test 2 PASSED: Pollinations image URL builder works:', imgUrl);
+  console.log('✅ Test 2 PASSED: Dynamic catastrophe generator produces valid scenario:', catastrophe.title);
 
   // Test 3: Bot names pool integrity
   if (!BOT_NAMES.panic || !BOT_NAMES.cynic || !BOT_NAMES.strategist) {

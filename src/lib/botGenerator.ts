@@ -22,58 +22,60 @@ const NICKNAMES_POOL = [
   'Виктория Лис', 'Марат «Монолит»', 'Полина «Нить»', 'Борис «Молот»', 'Наталья МЧС'
 ];
 
-const BACKSTORY_TEMPLATES = [
-  {
-    story: 'Бывший шеф-повар вокзальной столовой. В рюкзаке несет любимого попугая и чугунную сковородку. Ужасно боится высоты и астматик, но поклялся накормить всех выживших.',
-    temp: 'Вспыльчивый, но отходчивый щедрый добряк, обожает еду'
-  },
-  {
-    story: 'Бывший спасатель МЧС. Потерял семью при первичном ударе. Суров, немногословен, готовит отряд к жесткому выживанию и не терпит паникеров.',
-    temp: 'Суровый молчаливый прагматик, ценит дисциплину и действие'
-  },
-  {
-    story: '20-летний стример-гидропоник. Уверен, что апокалипсис — это просто жесткий ивент. Притащил с собой фитолампу и надеется развернуть ферму.',
-    temp: 'Гиперактивный оптимист с гиковским сленгом'
-  },
-  {
-    story: 'Бывший инженер дизельных подстанций. До последнего чинил локальный генератор. Контужен на правое ухо, верит только цифрам и фактам.',
-    temp: 'Осторожный скептик, презирает болтунов и гуманитариев'
-  },
-  {
-    story: 'Пенсионерка-травница. Всю жизнь прожила в тайге. Знает 200 видов съедобных кореньев и ядов. Считает молодежь неженками.',
-    temp: 'Ворчливая мудрая бабушка, остра на язык'
-  },
-  {
-    story: 'Следственный эксперт МВД. Всюду ищет подвох и скрытые мотивы. Постоянно записывает реплики выживших в блокнот.',
-    temp: 'Хладнокровный дотошный аналитик, склонный к паранойе'
-  },
-  {
-    story: 'Автомеханик-самоучка. Из любого мусора может собрать водяную помпу. Регулярно сыплет техническими поговорками и шутками.',
-    temp: 'Простой юморной работяга, ценит прямоту'
-  },
-  {
-    story: 'Учительница физики старших классов. Сохраняет педагогический тон даже во время апокалипсиса и требует от всех вежливости.',
-    temp: 'Строгая, требовательная, но глубоко заботливая'
-  }
+const PAST_ORIGINS = [
+  'Бывший инженер дизельных подстанций.', 'Рядовой спасатель МЧС с 10-летним стажем.',
+  'Фельдшер скорой помощи из пригородного района.', 'Студент-агроном факультета точного земледелия.',
+  'Бывший шеф-повар городской столовой.', 'Следственный эксперт МВД на пенсии.',
+  'Учитель физики и астрономии.', 'Автомеханик из армейского автобата.',
+  'Таежный охотник и егерь.', 'Техник-связист узла оповещения.',
+  'Оператор очистных сооружений.', 'Химик-лаборант фармпредприятия.'
 ];
+
+const CRITICAL_EVENTS = [
+  'При первичном взрыве успел спасти ящик с медикаментами.',
+  'Всю ночь удерживал локальный генератор от замыкания.',
+  'Вывел группу гражданских из зоны поражения.',
+  'Потерял связь с близкими, но сохранился как опытный специалист.',
+  'Пробился к убежищу через заваленный тоннель метро.',
+  'Успел законсервировать запасы чистой воды на складе.'
+];
+
+const PERSONAL_MOTIVATIONS = [
+  'Суров, верит только фактам и сухой пользе для отряда.',
+  'Вспыльчивый, но глубоко заботливый мастер на все руки.',
+  'Хладнокровный аналитик, склонный проверять каждое слово.',
+  'Оптимист, поддерживающий моральный дух группы шутками.',
+  'Ворчливый прагматик, презирающий паникеров и лентяев.'
+];
+
+function generateProceduralBackstory(): { story: string; temp: string } {
+  const origin = PAST_ORIGINS[Math.floor(Math.random() * PAST_ORIGINS.length)];
+  const event = CRITICAL_EVENTS[Math.floor(Math.random() * CRITICAL_EVENTS.length)];
+  const motivation = PERSONAL_MOTIVATIONS[Math.floor(Math.random() * PERSONAL_MOTIVATIONS.length)];
+
+  return {
+    story: `${origin} ${event} Мечтает восстановить базовые системы выживания.`,
+    temp: motivation,
+  };
+}
 
 export async function generateUniqueBotProfile(catastropheTitle?: string): Promise<GeneratedBotProfile> {
   const prompt = `Сгенерируй уникального персонажа-выжившего для игры Бункер в формате JSON.
 Контекст катастрофы: ${catastropheTitle || 'Постапокалипсис'}.
 
 Верни строго JSON объект с ключами:
-- nickname (имя/позывной, например: "Дядя Коля «Паяльник»")
-- backstory (интересная предыстория 2-3 предложения, драма или юмор)
-- temperament (характер и стиль общения)
+- nickname (уникальное имя или позывной)
+- backstory (предыстория 2-3 предложения)
+- temperament (характер и стиль речи)
 - profession (профессия)
-- health (состояние здоровья)
-- hobby (увлечение)
-- phobia (страх/фобия)
-- luggage (багаж/вещь)
-- extra_info (дополнительный факт)
-- special_card (спец-способность)`;
+- health (здоровье)
+- hobby (хобби)
+- phobia (фобия)
+- luggage (багаж)
+- extra_info (доп факт)
+- special_card (спец способность)`;
 
-  const systemPrompt = `Ты генератор персонажей для драматической игры про выживание в бункере. Верни строго JSON.`;
+  const systemPrompt = `Ты генератор выживших для драматической игры Бункер 2077. Верни строго JSON.`;
 
   try {
     const raw = await generatePollinationsText(prompt, systemPrompt);
@@ -99,12 +101,12 @@ export async function generateUniqueBotProfile(catastropheTitle?: string): Promi
     console.warn('LLM dynamic bot generation fallback triggered:', e);
   }
 
-  // Robust Fallback Generator
+  // Combinatorial Procedural Fallback Generator (Zero duplicate risk)
   const name = NICKNAMES_POOL[Math.floor(Math.random() * NICKNAMES_POOL.length)];
-  const backstoryData = BACKSTORY_TEMPLATES[Math.floor(Math.random() * BACKSTORY_TEMPLATES.length)];
+  const { story, temp } = generateProceduralBackstory();
 
   return {
-    nickname: name,
+    nickname: `${name}_${Math.floor(Math.random() * 89 + 10)}`,
     profession: PROFESSIONS[Math.floor(Math.random() * PROFESSIONS.length)],
     health: HEALTH_CONDITIONS[Math.floor(Math.random() * HEALTH_CONDITIONS.length)],
     hobby: HOBBIES[Math.floor(Math.random() * HOBBIES.length)],
@@ -112,7 +114,7 @@ export async function generateUniqueBotProfile(catastropheTitle?: string): Promi
     luggage: LUGGAGES[Math.floor(Math.random() * LUGGAGES.length)],
     extra_info: EXTRA_INFOS[Math.floor(Math.random() * EXTRA_INFOS.length)],
     special_card: SPECIAL_CARDS[Math.floor(Math.random() * SPECIAL_CARDS.length)],
-    backstory: backstoryData.story,
-    temperament: backstoryData.temp,
+    backstory: story,
+    temperament: temp,
   };
 }
