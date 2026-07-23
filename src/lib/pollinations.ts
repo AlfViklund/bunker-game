@@ -11,7 +11,7 @@ export interface CatastropheScenario {
 }
 
 const DYNAMIC_DISASTER_ORIGINS = [
-  'Аномальный падение астероида «Орион-9»', 'Тектонический разлом Тихоокеанской плиты', 'Криогенный взрыв стратосферы 2084',
+  'Аномальное падение астероида «Орион-9»', 'Тектонический разлом Тихоокеанской плиты', 'Криогенный взрыв стратосферы 2084',
   'Нейротоксичный туман «Вектор-7»', 'Солнечный сверхвыброс Класса X9', 'Инферно-шторм расплавленного ядра',
   'Магнитный коллапс атмосферной сетки', 'Генетический споровый ливень', 'Техногенная катастрофа реактора Сингулярности',
   'Пылевой ураган радиоактивного урана', 'Бактериологическая чума «Анубис-X»', 'Ледниковый импульс послеядерного типа'
@@ -72,46 +72,37 @@ export async function generatePollinationsText(
   systemPrompt?: string,
   botContext?: { nickname?: string; profession?: string; backstory?: string }
 ): Promise<string> {
-  const messages = [];
-  if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
-  messages.push({ role: 'user', content: prompt });
+  const compactPrompt = prompt.slice(0, 450);
+  const fullPromptText = systemPrompt ? `${systemPrompt}\n${compactPrompt}` : compactPrompt;
 
-  // 1. OpenRouter API (Primary LLM Engine for Vercel Cloud)
-  const openRouterKey = process.env.OPENROUTER_API_KEY;
-  if (openRouterKey) {
-    const models = ['openrouter/free', 'google/gemma-4-26b-a4b-it:free', 'openai/gpt-oss-20b:free'];
-    for (const model of models) {
-      try {
-        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${openRouterKey}`,
-            'HTTP-Referer': 'https://bunker-game.vercel.app',
-            'X-Title': 'Bunker 2077'
-          },
-          body: JSON.stringify({
-            model,
-            messages,
-            temperature: 0.8,
-            max_tokens: 200
-          })
-        });
+  // 1. Try Free Pollinations Endpoint with Referral Headers
+  try {
+    const res = await fetch('https://text.pollinations.ai/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+        'Referer': 'https://pollinations.ai/',
+        'Origin': 'https://pollinations.ai'
+      },
+      body: JSON.stringify({
+        messages: [
+          { role: 'user', content: fullPromptText }
+        ]
+      })
+    });
 
-        if (res.ok) {
-          const data = await res.json();
-          const content = data.choices?.[0]?.message?.content?.trim();
-          if (content && content.length > 5) {
-            return content;
-          }
-        }
-      } catch (err) {
-        console.warn(`OpenRouter model ${model} failed:`, err);
+    if (res.ok) {
+      const text = await res.text();
+      if (text && text.trim().length > 5 && !text.includes('402 Payment Required')) {
+        return text.trim();
       }
     }
+  } catch (err) {
+    console.warn('Free Pollinations text fetch failed:', err);
   }
 
-  // 2. Try local OmniRoute endpoint (for local dev on localhost:20128)
+  // 2. Try local OmniRoute (for local development on Mac)
   try {
     const oRes = await fetch('http://localhost:20128/v1/chat/completions', {
       method: 'POST',
@@ -121,7 +112,10 @@ export async function generatePollinationsText(
       },
       body: JSON.stringify({
         model: 'gem36h',
-        messages,
+        messages: [
+          { role: 'system', content: systemPrompt || 'Ты выживший у бункера.' },
+          { role: 'user', content: compactPrompt }
+        ],
       }),
     });
 
@@ -144,7 +138,7 @@ export async function generatePollinationsText(
     }
   } catch (e) {}
 
-  // 3. Fallback: Procedural Combinatorial Generator (No static 5 strings!)
+  // 3. Fallback: Multi-dimensional Combinatorial Engine (100% Free & Dynamic)
   return generateProceduralBotReply(botContext);
 }
 
@@ -153,25 +147,33 @@ function generateProceduralBotReply(botContext?: { nickname?: string; profession
   const prof = botContext?.profession || 'специалист';
 
   const INTROS = [
-    'Слышьте, вы долго тут язык чесать будете?!',
-    'Так, народ, хватит зубы заговаривать!',
-    'Я повторить могу для особо сообразительных:',
-    'Пока вы тут спорите, гермозатвор от мороза поведет!',
-    'Вы хоть соображаете, что на улице происходит?!'
+    `Слышьте, вы долго тут язык чесать будете?!`,
+    `Так, народ, хватит зубы заговаривать!`,
+    `Я повторить могу для особо сообразительных:`,
+    `Пока вы тут спорите, гермозатвор от мороза поведет!`,
+    `Вы хоть соображаете, что на улице происходит?!`,
+    `Завязывайте демагогию устраивать!`,
+    `Эй, чудики, опомнитесь!`,
+    `Слушайте сюды и не перебивайте!`,
+    `У меня терпение уже на исходе!`
   ];
 
   const CLAIMS = [
     `У меня профессия ${prof}, и без моих навыков вы в первый же месяц загнетесь!`,
-    `Я как ${prof} на себе всю техническую часть бункера вытащу, пока вы тут лясы точите!`,
+    `Я как ${prof} на себе всю техническую часть бункера вытащу!`,
     `Кто из вас вообще разбирается в системах так, как я (${prof})?!`,
-    `Мои знания (${prof}) — это прямое выживание всего отряда, а не просто пустые слова!`
+    `Мои знания (${prof}) — это прямое выживание всего отряда, а не сопливые обещания!`,
+    `Я пробился к убежищу не для того, чтобы от бестолковых попутчиков загнуться!`,
+    `Моя подготовка (${prof}) позволит нам продержаться хоть 5 лет на глубине!`
   ];
 
   const OUTROS = [
-    'Живо карты на стол выкатывайте, а не юлите!',
-    'Открывайте свои сумки, не тяните время!',
-    'Давайте по делу решать, кто пользу принесет!',
-    'Если не верите — проверяйте мои карты прямо сейчас!'
+    `Живо карты на стол выкатывайте, а не юлите!`,
+    `Открывайте свои сумки, не тяните время!`,
+    `Давайте по делу решать, кто пользу принесет!`,
+    `Если не верите — проверяйте мои карты прямо сейчас!`,
+    `Выкатывайте хабар, или я сам за двери вас вытолкаю!`,
+    `У нас за бортом минус пятьдесят, решайте быстрее!`
   ];
 
   const i = INTROS[Math.floor(Math.random() * INTROS.length)];

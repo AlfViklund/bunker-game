@@ -24,13 +24,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ status: 'ignored' });
     }
 
-    // 2. Fetch Up to 50 Recent Chat Messages (Memory Context)
+    // 2. Fetch Up to 3 Recent Chat Messages (Compact Short Context)
     const { data: recentMessages } = await supabase
       .from('bunker_messages')
       .select('*')
       .eq('room_id', roomId)
       .order('created_at', { ascending: false })
-      .limit(50);
+      .limit(3);
 
     const chatHistoryLog = (recentMessages || [])
       .reverse()
@@ -59,37 +59,15 @@ export async function POST(req: NextRequest) {
     );
 
     if (phase === 'debate' || phase === 'reveal_round') {
-      const prompt = `Ты — ${botPlayer.nickname}, реальный выживший у бункера.
+      const prompt = `Ты — ${botPlayer.nickname}, выживший у бункера. Профессия: ${botPlayer.profession}, Багаж: ${botPlayer.luggage}.
+Катастрофа: ${room.catastrophe_title}. Мест: ${room.bunker_size}.
+Чат:
+${chatHistoryLog || '(Гермозатвор открыт)'}
 
-КАТАСТРОФА: ${room.catastrophe_title} (${room.catastrophe_desc}).
-Мест в бункере: ${room.bunker_size}, а претендентов: ${activePlayers.length}.
+${humanPrompt ? `Игрок пишет: "${humanPrompt}". Ответь ему!` : 'Выскажись в чате!'}
+Правила: Ответь 1 короткой острой живой фразой на русском без клише. Назови оппонента по имени.`;
 
-ТВОЯ ЛИЧНОСТЬ:
-- Имя: ${botPlayer.nickname}
-- Профессия: ${botPlayer.profession}
-- Здоровье: ${botPlayer.health}
-- Багаж: ${botPlayer.luggage}
-- Хобби: ${botPlayer.hobby}
-- Предыстория: ${botPlayer.backstory || 'Выживший со сложной судьбой'}
-- Твой характер: ${botPlayer.temperament || 'Реалистичный упрямый выживший'}
-
-СПИСОК УЧАСТНИКОВ И ИХ ОТКРЫТЫЕ КАРТЫ:
-${survivorsSummary}
-
-ПОСЛЕДНИЕ РЕПЛИКИ В ЧАТЕ:
-${chatHistoryLog || '(Гермозатвор открылся, никто пока не говорил)'}
-
-${humanPrompt ? `Участник (человек) только что сказал: "${humanPrompt}". Ответь прямо ему в лицо!` : 'Выскажись в чате. Ответь на предыдущие реплики или наедь на кого-то из участников по имени!'}
-
-ЖЕСТКИЕ ПРАВИЛА РЕЧИ (НАРУШЕНИЕ = БРАК):
-1. НИКАКИХ КЛИШЕ И ОДНОТИПНЫХ ФРАЗ! Запрещены формулы: "Послушайте внимательно", "Моя профессия (X) — это...", "Как X я считаю...", "Ресурс ограничен...".
-2. Разговаривай как НАСТОЯЩИЙ живой человек на русском языке! Используй эмоции, подколки, сомневайся в чужом багаже, обращаясь ПО ИМЕНИ к конкретным участникам.
-3. Напиши 1-2 ОСТРЫХ, ЕСТЕСТВЕННЫХ предложения.
-
-Если хочешь ДОБРОВОЛЬНО ПОКАЗАТЬ одну из своих нераскрытых карт всем, в самом конце добавь на новой строке:
-[REVEAL: название_поля] (например: [REVEAL: luggage]).`;
-
-      const systemPrompt = `Ты — ${botPlayer.nickname}. Живой человек у бункера. Пиши остро, эмоционально и реалистично на русском языке. Запрещены формулы и клише.`;
+      const systemPrompt = `Ты — ${botPlayer.nickname}, выживший у бункера. Запрещен канцелярит. Пиши 1 живую реплику на русском.`;
 
       const rawReply = await generatePollinationsText(prompt, systemPrompt, {
         nickname: botPlayer.nickname,
