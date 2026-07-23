@@ -76,7 +76,7 @@ export default function FriendsSidebar({
 
     await supabase.from('bunker_friends').insert({
       user_id: userId,
-      friend_user_id: `user-${targetCode}`,
+      friend_user_id: crypto.randomUUID(),
       friend_nickname: mockFriendNickname,
       friend_code: targetCode,
     });

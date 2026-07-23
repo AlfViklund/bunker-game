@@ -40,7 +40,7 @@ export default function Lobby({ room, players, currentUserId, onStartGame }: Lob
 
     await supabase.from('bunker_players').insert({
       room_id: room.id,
-      user_id: `bot-${crypto.randomUUID()}`,
+      user_id: crypto.randomUUID(),
       nickname: `${name} [ИИ]`,
       is_bot: true,
       bot_personality: selectedBotPersonality,
