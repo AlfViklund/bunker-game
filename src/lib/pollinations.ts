@@ -67,13 +67,52 @@ export async function generateDynamicCatastrophe(): Promise<CatastropheScenario>
   };
 }
 
-export async function generatePollinationsText(prompt: string, systemPrompt?: string, botContext?: { nickname?: string; profession?: string; backstory?: string }): Promise<string> {
-  // 1. Try OmniRoute local endpoint first (150ms latency, high quality, zero cost)
-  try {
-    const messages = [];
-    if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
-    messages.push({ role: 'user', content: prompt });
+export async function generatePollinationsText(
+  prompt: string,
+  systemPrompt?: string,
+  botContext?: { nickname?: string; profession?: string; backstory?: string }
+): Promise<string> {
+  const messages = [];
+  if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
+  messages.push({ role: 'user', content: prompt });
 
+  // 1. OpenRouter API (Primary LLM Engine for Vercel Cloud)
+  const openRouterKey = process.env.OPENROUTER_API_KEY;
+  if (openRouterKey) {
+    const models = ['openrouter/free', 'google/gemma-4-26b-a4b-it:free', 'openai/gpt-oss-20b:free'];
+    for (const model of models) {
+      try {
+        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${openRouterKey}`,
+            'HTTP-Referer': 'https://bunker-game.vercel.app',
+            'X-Title': 'Bunker 2077'
+          },
+          body: JSON.stringify({
+            model,
+            messages,
+            temperature: 0.8,
+            max_tokens: 200
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const content = data.choices?.[0]?.message?.content?.trim();
+          if (content && content.length > 5) {
+            return content;
+          }
+        }
+      } catch (err) {
+        console.warn(`OpenRouter model ${model} failed:`, err);
+      }
+    }
+  }
+
+  // 2. Try local OmniRoute endpoint (for local dev on localhost:20128)
+  try {
     const oRes = await fetch('http://localhost:20128/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -105,44 +144,39 @@ export async function generatePollinationsText(prompt: string, systemPrompt?: st
     }
   } catch (e) {}
 
-  // 2. Try Pollinations text endpoint
-  try {
-    const fullPrompt = systemPrompt ? `${systemPrompt}\n\n${prompt}` : prompt;
-    const url = `https://text.pollinations.ai/${encodeURIComponent(fullPrompt)}?model=openai`;
-
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'
-      },
-      next: { revalidate: 0 }
-    });
-
-    if (res.ok) {
-      const text = await res.text();
-      if (text && text.trim().length > 5) {
-        return text.trim();
-      }
-    }
-  } catch (err) {
-    console.warn('Pollinations Text fetch failed, using persona fallback', err);
-  }
-
-  // 3. Fallback response generator if network or API has issues
-  return generateFallbackBotReply(prompt, systemPrompt, botContext);
+  // 3. Fallback: Procedural Combinatorial Generator (No static 5 strings!)
+  return generateProceduralBotReply(botContext);
 }
 
-function generateFallbackBotReply(prompt: string, systemPrompt?: string, botContext?: { nickname?: string; profession?: string; backstory?: string }): string {
+function generateProceduralBotReply(botContext?: { nickname?: string; profession?: string; backstory?: string }): string {
   const nick = botContext?.nickname || 'Выживший';
   const prof = botContext?.profession || 'специалист';
 
-  const VARIATION_FALLBACKS = [
-    `Слышьте, вы долго тут спорить собираетесь?! На улице минус пятьдесят, давайте решать по делу!`,
-    `У меня навык (${prof}) и я знаю, как его применить. Выкладывайте свои карты, не тяните время!`,
-    `Посмотрите на мои вещи — я здесь не ради разговоров. Если не берете меня, бункер без генерации останется!`,
-    `Я знаю свое дело (${prof}). Нам нужны выжившие с прикладными навыками, а не сопливые обещания.`,
-    `Вы затвором хлопать прекратите и карты открывайте — у нас кислород на исходе!`
+  const INTROS = [
+    'Слышьте, вы долго тут язык чесать будете?!',
+    'Так, народ, хватит зубы заговаривать!',
+    'Я повторить могу для особо сообразительных:',
+    'Пока вы тут спорите, гермозатвор от мороза поведет!',
+    'Вы хоть соображаете, что на улице происходит?!'
   ];
 
-  return VARIATION_FALLBACKS[Math.floor(Math.random() * VARIATION_FALLBACKS.length)];
+  const CLAIMS = [
+    `У меня профессия ${prof}, и без моих навыков вы в первый же месяц загнетесь!`,
+    `Я как ${prof} на себе всю техническую часть бункера вытащу, пока вы тут лясы точите!`,
+    `Кто из вас вообще разбирается в системах так, как я (${prof})?!`,
+    `Мои знания (${prof}) — это прямое выживание всего отряда, а не просто пустые слова!`
+  ];
+
+  const OUTROS = [
+    'Живо карты на стол выкатывайте, а не юлите!',
+    'Открывайте свои сумки, не тяните время!',
+    'Давайте по делу решать, кто пользу принесет!',
+    'Если не верите — проверяйте мои карты прямо сейчас!'
+  ];
+
+  const i = INTROS[Math.floor(Math.random() * INTROS.length)];
+  const c = CLAIMS[Math.floor(Math.random() * CLAIMS.length)];
+  const o = OUTROS[Math.floor(Math.random() * OUTROS.length)];
+
+  return `${i} ${c} ${o}`;
 }
