@@ -62,6 +62,22 @@ export default function ChatPhase({ roomId, currentUserId, userNickname, players
       is_bot: false,
       message: text,
     });
+
+    // Trigger AI bots to reply to the user message
+    const botPlayers = players.filter((p) => p.is_bot && !p.is_eliminated);
+    if (botPlayers.length > 0) {
+      const selectedBot = botPlayers[Math.floor(Math.random() * botPlayers.length)];
+      fetch('/api/bot-turn', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomId,
+          botUserId: selectedBot.user_id,
+          phase: 'debate',
+          humanPrompt: text,
+        }),
+      }).catch((err) => console.warn('Bot reply error:', err));
+    }
   };
 
   const getBotColorClass = (personality: string | null) => {

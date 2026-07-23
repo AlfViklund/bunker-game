@@ -4,16 +4,17 @@ import React, { useState } from 'react';
 import { Player, Room, BotPersonality } from '@/types/game';
 import { BOT_NAMES, generateRandomSurvivorCard } from '@/lib/cardBank';
 import { supabase } from '@/lib/supabase';
-import { Users, Shield, Bot, Play, CheckCircle2, Plus, AlertCircle } from 'lucide-react';
+import { Users, Shield, Bot, Play, CheckCircle2, Plus, AlertCircle, Minus } from 'lucide-react';
 
 interface LobbyProps {
   room: Room;
   players: Player[];
   currentUserId: string;
   onStartGame: () => void;
+  onUpdateBunkerSize?: (newSize: number) => void;
 }
 
-export default function Lobby({ room, players, currentUserId, onStartGame }: LobbyProps) {
+export default function Lobby({ room, players, currentUserId, onStartGame, onUpdateBunkerSize }: LobbyProps) {
   const [showBotModal, setShowBotModal] = useState(false);
   const [selectedBotPersonality, setSelectedBotPersonality] = useState<BotPersonality>('cynic');
   const [loading, setLoading] = useState(false);
@@ -54,10 +55,21 @@ export default function Lobby({ room, players, currentUserId, onStartGame }: Lob
     setShowBotModal(false);
   };
 
+  const handleBunkerSizeChange = async (delta: number) => {
+    const newSize = Math.max(1, Math.min(room.max_players - 1, room.bunker_size + delta));
+    if (newSize === room.bunker_size) return;
+
+    if (onUpdateBunkerSize) {
+      onUpdateBunkerSize(newSize);
+    }
+
+    await supabase.from('bunker_rooms').update({ bunker_size: newSize }).eq('id', room.id);
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Catastrophe Banner */}
-      <div className="p-5 bg-zinc-900 border border-zinc-800 rounded-xl space-y-2 relative overflow-hidden">
+      {/* Catastrophe Banner with Pollinations Concept Art */}
+      <div className="p-5 bg-zinc-900 border border-zinc-800 rounded-xl space-y-3 relative overflow-hidden shadow-xl">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2 text-amber-500 font-bold text-sm uppercase tracking-wider">
             <AlertCircle className="w-4 h-4" />
@@ -67,6 +79,22 @@ export default function Lobby({ room, players, currentUserId, onStartGame }: Lob
             Вместимость укрытия: <span className="text-emerald-400 font-bold">{room.bunker_size} мест</span>
           </div>
         </div>
+
+        {/* Generated Image Art */}
+        {room.catastrophe_image_url && (
+          <div className="relative w-full h-44 sm:h-56 rounded-lg overflow-hidden border border-zinc-800 shadow-inner">
+            <img
+              src={room.catastrophe_image_url}
+              alt={room.catastrophe_title || 'Арт катастрофы'}
+              className="w-full h-full object-cover transition-all duration-500 hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent" />
+            <div className="absolute bottom-3 left-3 text-[10px] font-mono-data text-emerald-400 bg-zinc-950/80 px-2 py-1 rounded border border-zinc-800">
+              ГЕНЕРАЦИЯ ПОСТАПОКАЛИПСИСА: POLLINATIONS.AI
+            </div>
+          </div>
+        )}
+
         <h2 className="text-xl font-bold text-zinc-100">{room.catastrophe_title}</h2>
         <p className="text-sm text-zinc-400 leading-relaxed">{room.catastrophe_desc}</p>
       </div>
@@ -80,15 +108,43 @@ export default function Lobby({ room, players, currentUserId, onStartGame }: Lob
             <span>Параметры Сессии</span>
           </div>
 
-          <div className="space-y-3 text-sm">
+          <div className="space-y-4 text-sm">
             <div className="flex justify-between items-center text-zinc-400">
               <span>Код подключения:</span>
               <span className="font-mono-data font-bold text-emerald-400 text-base">{room.code}</span>
             </div>
-            <div className="flex justify-between items-center text-zinc-400">
-              <span>Всего мест в бункере:</span>
-              <span className="font-mono-data text-zinc-200">{room.bunker_size} из {players.length}</span>
+
+            {/* Editable Bunker Size (N) */}
+            <div className="space-y-1.5 p-3 bg-zinc-950 border border-zinc-800 rounded-lg">
+              <div className="text-xs text-zinc-400 flex justify-between items-center">
+                <span>Вместимость бункера (N):</span>
+                <span className="font-mono-data text-emerald-400 font-bold">{room.bunker_size} чел</span>
+              </div>
+              {isHost ? (
+                <div className="flex items-center justify-between pt-1">
+                  <button
+                    onClick={() => handleBunkerSizeChange(-1)}
+                    disabled={room.bunker_size <= 1}
+                    className="p-1.5 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 rounded text-zinc-200 transition"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <span className="font-mono-data text-xs text-zinc-300 font-bold">
+                    Бункер вмещает {room.bunker_size} из {players.length}
+                  </span>
+                  <button
+                    onClick={() => handleBunkerSizeChange(1)}
+                    disabled={room.bunker_size >= room.max_players - 1}
+                    className="p-1.5 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 rounded text-zinc-200 transition"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="text-xs text-zinc-500 italic">Настраивается создателем сессии</div>
+              )}
             </div>
+
             <div className="flex justify-between items-center text-zinc-400">
               <span>Игроков в лобби:</span>
               <span className="font-mono-data text-zinc-200">{players.length} / {room.max_players}</span>

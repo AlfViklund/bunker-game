@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { generatePollinationsText } from '@/lib/pollinations';
-import { Player, Room } from '@/types/game';
+import { Player } from '@/types/game';
 
 export async function POST(req: NextRequest) {
   try {
-    const { roomId, botUserId, phase } = await req.json();
+    const { roomId, botUserId, phase, humanPrompt } = await req.json();
 
     if (!roomId || !botUserId) {
       return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
@@ -28,14 +28,17 @@ export async function POST(req: NextRequest) {
     const personality = botPlayer.bot_personality || 'strategist';
 
     if (phase === 'debate' || phase === 'reveal_round') {
-      // Build prompt for bot chat statement
+      const contextMsg = humanPrompt
+        ? `Один из участников написал в чате: "${humanPrompt}". Ответь ему напрямую в характере ${personality}.`
+        : `Напиши 1-2 кратких убедительных предложения в общий чат, почему тебя нельзя выгонять из бункера.`;
+
       const prompt = `Ты выживший в бункере по имени ${botPlayer.nickname}.
 Твоя карточка: Профессия: ${botPlayer.profession}, Здоровье: ${botPlayer.health}, Багаж: ${botPlayer.luggage}, Хобби: ${botPlayer.hobby}.
 Катастрофа: ${room.catastrophe_title} (${room.catastrophe_desc}).
 В бункере всего ${room.bunker_size} мест для ${activePlayers.length} участников.
-Напиши 1-2 кратких убедительных предложения в общий чат, почему тебя нельзя выгонять из бункера.`;
+${contextMsg}`;
 
-      const systemPrompt = `Ты ИИ-бот с характером ${personality}. Отыгрывай роль выжившего в игре Бункер 2077.`;
+      const systemPrompt = `Ты ИИ-бот с характером ${personality}. Отыгрывай роль выжившего в игре Бункер 2077. Пиши на русском языке.`;
 
       const replyText = await generatePollinationsText(prompt, systemPrompt);
 
@@ -46,7 +49,7 @@ export async function POST(req: NextRequest) {
         sender_name: botPlayer.nickname,
         is_bot: true,
         bot_personality: personality,
-        message: replyText
+        message: replyText,
       });
 
       return NextResponse.json({ success: true, message: replyText });
@@ -57,20 +60,23 @@ export async function POST(req: NextRequest) {
       const validSuspects = activePlayers.filter((p: Player) => p.user_id !== botPlayer.user_id);
       if (validSuspects.length > 0) {
         const suspect = validSuspects[Math.floor(Math.random() * validSuspects.length)];
-        
-        await supabase.from('bunker_votes').upsert({
-          room_id: roomId,
-          voter_id: botPlayer.user_id,
-          suspect_id: suspect.user_id
-        }, { onConflict: 'room_id,voter_id' });
+
+        await supabase.from('bunker_votes').upsert(
+          {
+            room_id: roomId,
+            voter_id: botPlayer.user_id,
+            suspect_id: suspect.user_id,
+          },
+          { onConflict: 'room_id,voter_id' }
+        );
 
         return NextResponse.json({ success: true, votedFor: suspect.nickname });
       }
     }
 
-    return NextResponse.json({ status: 'no_action' });
+    return NextResponse.json({ status: 'ok' });
   } catch (err: any) {
-    console.error('Bot turn API error:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error('Bot turn error:', err);
+    return NextResponse.json({ error: err?.message || 'Server error' }, { status: 500 });
   }
 }

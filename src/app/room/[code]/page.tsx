@@ -151,6 +151,12 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
     const currentRevealed = me.revealed_fields || [];
     if (!currentRevealed.includes(fieldKey)) {
       const updated = [...currentRevealed, fieldKey];
+
+      // Optimistic update local players state immediately
+      setPlayers((prev) =>
+        prev.map((p) => (p.user_id === currentUserId ? { ...p, revealed_fields: updated } : p))
+      );
+
       await supabase.from('bunker_players').update({ revealed_fields: updated }).eq('id', me.id);
     }
   };
@@ -256,22 +262,32 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
             players={players}
             currentUserId={currentUserId}
             onStartGame={handleStartGame}
+            onUpdateBunkerSize={(newSize) => setRoom((prev) => (prev ? { ...prev, bunker_size: newSize } : null))}
           />
         )}
 
         {(room.status === 'debate' || room.status === 'voting') && (
           <div className="space-y-6">
-            {/* Top Bar: Catastrophe Summary */}
-            <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center space-x-2 text-xs font-bold text-amber-400 uppercase">
-                  <AlertTriangle className="w-4 h-4" />
-                  <span>{room.catastrophe_title}</span>
+            {/* Top Bar: Catastrophe Summary with Pollinations Image */}
+            <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4 shadow-md">
+              <div className="flex items-center space-x-4">
+                {room.catastrophe_image_url && (
+                  <img
+                    src={room.catastrophe_image_url}
+                    alt={room.catastrophe_title || 'Арт'}
+                    className="w-20 h-16 object-cover rounded-lg border border-zinc-800 flex-shrink-0"
+                  />
+                )}
+                <div className="space-y-1">
+                  <div className="flex items-center space-x-2 text-xs font-bold text-amber-400 uppercase">
+                    <AlertTriangle className="w-4 h-4" />
+                    <span>{room.catastrophe_title}</span>
+                  </div>
+                  <div className="text-xs text-zinc-400 max-w-xl line-clamp-2">{room.catastrophe_desc}</div>
                 </div>
-                <div className="text-xs text-zinc-400 max-w-2xl">{room.catastrophe_desc}</div>
               </div>
 
-              <div className="font-mono-data text-xs px-3 py-1.5 bg-zinc-950 border border-zinc-800 rounded text-zinc-300">
+              <div className="font-mono-data text-xs px-3 py-1.5 bg-zinc-950 border border-zinc-800 rounded text-zinc-300 flex-shrink-0">
                 Вместимость: <span className="text-emerald-400 font-bold">{room.bunker_size} мест</span> (Осталось:{' '}
                 <span className="text-rose-400 font-bold">{players.filter((p) => !p.is_eliminated).length}</span>)
               </div>
