@@ -215,9 +215,9 @@ export default function Lobby({ room, players, currentUserId, onStartGame, onUpd
                         </span>
                       )}
                     </div>
-                    {p.is_bot && p.backstory && (
-                      <div className="text-[11px] text-zinc-400 font-mono-data italic mt-0.5 leading-tight">
-                        «{p.backstory}»
+                    {p.is_bot && (
+                      <div className="text-[10px] text-sky-400 font-mono-data font-semibold">
+                        ИИ-Выживший
                       </div>
                     )}
                   </div>

@@ -51,8 +51,8 @@ export default function SurvivorCard({ player, isCurrentPlayer, onRevealField }:
         )}
       </div>
 
-      {/* Backstory Banner if available */}
-      {player.backstory && (
+      {/* Backstory Banner only for current player or if revealed */}
+      {player.backstory && (isCurrentPlayer || player.revealed_fields?.includes('extra_info')) && (
         <div className="p-2.5 bg-zinc-950/80 border border-zinc-800/80 rounded-lg text-xs text-zinc-300 font-mono-data space-y-1">
           <div className="text-[10px] text-sky-400 font-bold uppercase">История Выжившего:</div>
           <div className="leading-relaxed italic text-zinc-400">«{player.backstory}»</div>
