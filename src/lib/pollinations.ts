@@ -138,14 +138,56 @@ export async function generatePollinationsText(
     }
   } catch (e) {}
 
-  // 3. Fallback: Multi-dimensional Combinatorial Engine (100% Free & Dynamic)
-  return generateProceduralBotReply(botContext);
+  // 3. Fallback: Context-Aware Reactive & Procedural Dialogue Engine (100% Free)
+  return generateProceduralBotReply(prompt, botContext);
 }
 
-function generateProceduralBotReply(botContext?: { nickname?: string; profession?: string; backstory?: string }): string {
+function generateProceduralBotReply(prompt?: string, botContext?: { nickname?: string; profession?: string; backstory?: string }): string {
   const nick = botContext?.nickname || 'Выживший';
   const prof = botContext?.profession || 'специалист';
+  const pLower = (prompt || '').toLowerCase();
 
+  // 1. Detect Insults & Hostility (Direct Reactive Retorts)
+  const INSULT_PATTERNS = ['пизд', 'нах', 'хуй', 'бля', 'урод', 'тупо', 'заткнись', 'соси', 'иди домой', 'гнид', 'тварь', 'дур', 'уйди', 'мудак', 'пидор', 'сук', 'черт'];
+  const isInsult = INSULT_PATTERNS.some((pat) => pLower.includes(pat));
+
+  if (isInsult) {
+    const INSULT_REACTIONS = [
+      `Слышь, рожа, за языком следи! Я как ${prof} здесь выживание организую, а ты только помоями капаешь!`,
+      `Ты мне тут не хами, умник! С таким разговорчиком первым за гермозатвор вылетишь!`,
+      `Ой, какие мы нервные! Я между прочим ${prof}, а от твоего лая бункер чище не станет!`,
+      `Заткнись сам, хамло! На улице минус пятьдесят, а у тебя сопли вместо мозгов!`,
+      `Своим языком на улице махать будешь, а здесь выживать надо. Я как ${prof} полезнее твоего ора!`,
+      `Эй, не ори! Моя профессия (${prof}) нас от гибели спасет, а твои маты только воздух отравляют!`,
+      `Попридержи язык! Я пробился к убежищу не для того, чтобы хамство терпеть.`,
+      `Рот прикрой, пока я тебе его дозиметром не запечатал! Навыки лучше свои показывай!`
+    ];
+    return INSULT_REACTIONS[Math.floor(Math.random() * INSULT_REACTIONS.length)];
+  }
+
+  // 2. Detect Questions & Inquiries
+  if (pLower.includes('кто') || pLower.includes('зачем') || pLower.includes('почему') || pLower.includes('что') || pLower.includes('где') || pLower.includes('как')) {
+    const QUESTION_REACTIONS = [
+      `Кто-кто? Те, у кого навыки есть! Я ${prof}, и моя задача — не дать нам всем загнуться в первые дни.`,
+      `Зачем? Затем, что без моей профессии (${prof}) мы тут за два дня от сырости вымрем!`,
+      `Вопросы тут задает тот, у кого карты открыты! Я ${prof}, выкладывай свое добро!`,
+      `Ты меньше спрашивай, а больше карты показывай! Мои знания (${prof}) группе жизненно необходимы.`,
+      `Ответ простой: бункер не резиновый, а я ${prof}. Решать надо быстро!`
+    ];
+    return QUESTION_REACTIONS[Math.floor(Math.random() * QUESTION_REACTIONS.length)];
+  }
+
+  // 3. Detect Doubts & Accusations
+  if (pLower.includes('не вер') || pLower.includes('вран') || pLower.includes('бреш') || pLower.includes('докажи') || pLower.includes('покажи')) {
+    const DOUBT_REACTIONS = [
+      `Не веришь?! Нате, смотрите мои карты, мне скрывать нечего! Моя профессия — ${prof}!`,
+      `Ты в себе сомневайся, а у меня все по-честному! Мои знания (${prof}) спасут отряд!`,
+      `Доказать? Выкладывай свои карты первым, а потом с меня доказательства требуй!`
+    ];
+    return DOUBT_REACTIONS[Math.floor(Math.random() * DOUBT_REACTIONS.length)];
+  }
+
+  // 4. Default Reactive Debate Chatter (Dynamic Combinatorial Pool)
   const INTROS = [
     `Слышьте, вы долго тут язык чесать будете?!`,
     `Так, народ, хватит зубы заговаривать!`,
@@ -153,7 +195,7 @@ function generateProceduralBotReply(botContext?: { nickname?: string; profession
     `Пока вы тут спорите, гермозатвор от мороза поведет!`,
     `Вы хоть соображаете, что на улице происходит?!`,
     `Завязывайте демагогию устраивать!`,
-    `Эй, чудики, опомнитесь!`,
+    `Эй, народ, опомнитесь!`,
     `Слушайте сюды и не перебивайте!`,
     `У меня терпение уже на исходе!`
   ];
