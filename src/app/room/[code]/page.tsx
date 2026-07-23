@@ -11,6 +11,8 @@ import VotingConsole from '@/components/VotingConsole';
 import EpiloguePhase from '@/components/EpiloguePhase';
 import { ArrowLeft, Radio, AlertTriangle } from 'lucide-react';
 
+import { getOrCreateGuestUser } from '@/lib/user';
+
 export default function RoomPage({ params }: { params: Promise<{ code: string }> }) {
   const resolvedParams = use(params);
   const code = resolvedParams.code.toUpperCase();
@@ -24,15 +26,9 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    let guestId = localStorage.getItem('bunker_guest_id');
-    if (!guestId) {
-      guestId = `guest-${crypto.randomUUID()}`;
-      localStorage.setItem('bunker_guest_id', guestId);
-    }
-    setCurrentUserId(guestId);
-
-    const savedNick = localStorage.getItem('bunker_guest_nick') || 'Выживший';
-    setUserNickname(savedNick);
+    const { userId: uid, nickname: nick } = getOrCreateGuestUser();
+    setCurrentUserId(uid);
+    setUserNickname(nick);
 
     fetchRoomData();
   }, [code]);

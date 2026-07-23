@@ -8,6 +8,8 @@ import { CATASTROPHE_PRESETS } from '@/lib/pollinations';
 import FriendsSidebar from '@/components/FriendsSidebar';
 import { Shield, Play, Users, KeyRound, Radio, Sparkles } from 'lucide-react';
 
+import { getOrCreateGuestUser } from '@/lib/user';
+
 export default function HomePage() {
   const router = useRouter();
   const [userId, setUserId] = useState<string>('');
@@ -17,20 +19,9 @@ export default function HomePage() {
   const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
-    // 1-Click Guest UUID setup
-    let guestId = localStorage.getItem('bunker_guest_id');
-    if (!guestId) {
-      guestId = `guest-${crypto.randomUUID()}`;
-      localStorage.setItem('bunker_guest_id', guestId);
-    }
-    setUserId(guestId);
-
-    let savedNick = localStorage.getItem('bunker_guest_nick');
-    if (!savedNick) {
-      savedNick = `Выживший_${Math.floor(1000 + Math.random() * 9000)}`;
-      localStorage.setItem('bunker_guest_nick', savedNick);
-    }
-    setNickname(savedNick);
+    const { userId: uid, nickname: nick } = getOrCreateGuestUser();
+    setUserId(uid);
+    setNickname(nick);
   }, []);
 
   const handleUpdateNickname = (newNick: string) => {
@@ -39,7 +30,8 @@ export default function HomePage() {
   };
 
   const handleCreateRoom = async () => {
-    if (!nickname.trim()) return;
+    const { userId: activeUid } = getOrCreateGuestUser();
+    const activeNick = nickname.trim() || 'Выживший';
     setLoading(true);
 
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -70,8 +62,8 @@ export default function HomePage() {
     // Insert Host Player
     await supabase.from('bunker_players').insert({
       room_id: room.id,
-      user_id: userId,
-      nickname,
+      user_id: activeUid,
+      nickname: activeNick,
       is_host: true,
       is_ready: true,
       ...card,
@@ -83,7 +75,9 @@ export default function HomePage() {
 
   const handleJoinRoom = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!roomCodeInput.trim() || !nickname.trim()) return;
+    const { userId: activeUid } = getOrCreateGuestUser();
+    const activeNick = nickname.trim() || 'Выживший';
+    if (!roomCodeInput.trim()) return;
 
     setLoading(true);
     const code = roomCodeInput.trim().toUpperCase();
@@ -101,15 +95,15 @@ export default function HomePage() {
       .from('bunker_players')
       .select('*')
       .eq('room_id', room.id)
-      .eq('user_id', userId)
+      .eq('user_id', activeUid)
       .single();
 
     if (!existing) {
       const card = generateRandomSurvivorCard();
       await supabase.from('bunker_players').insert({
         room_id: room.id,
-        user_id: userId,
-        nickname,
+        user_id: activeUid,
+        nickname: activeNick,
         is_host: false,
         is_ready: false,
         ...card,
