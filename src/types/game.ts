@@ -41,6 +41,8 @@ export interface Player {
   luggage: string;
   extra_info: string;
   special_card: string;
+  backstory?: string | null;
+  temperament?: string | null;
   
   revealed_fields: string[];
   joined_at: string;

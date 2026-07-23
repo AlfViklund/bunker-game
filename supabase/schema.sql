@@ -41,6 +41,8 @@ CREATE TABLE IF NOT EXISTS public.bunker_players (
   luggage TEXT NOT NULL,
   extra_info TEXT NOT NULL,
   special_card TEXT NOT NULL,
+  backstory TEXT,
+  temperament TEXT,
   
   -- Array of revealed fields e.g. ["profession", "health"]
   revealed_fields JSONB DEFAULT '[]'::jsonb,

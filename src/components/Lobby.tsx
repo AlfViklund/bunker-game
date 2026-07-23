@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import { Player, Room, BotPersonality } from '@/types/game';
-import { BOT_NAMES, generateRandomSurvivorCard } from '@/lib/cardBank';
+import { generateUniqueBotProfile } from '@/lib/botGenerator';
 import { supabase } from '@/lib/supabase';
-import { Users, Shield, Bot, Play, CheckCircle2, Plus, AlertCircle, Minus } from 'lucide-react';
+import { Users, Shield, Bot, Play, CheckCircle2, Plus, AlertCircle, Minus, Loader2 } from 'lucide-react';
 
 interface LobbyProps {
   room: Room;
@@ -15,9 +15,7 @@ interface LobbyProps {
 }
 
 export default function Lobby({ room, players, currentUserId, onStartGame, onUpdateBunkerSize }: LobbyProps) {
-  const [showBotModal, setShowBotModal] = useState(false);
-  const [selectedBotPersonality, setSelectedBotPersonality] = useState<BotPersonality>('cynic');
-  const [loading, setLoading] = useState(false);
+  const [loadingBot, setLoadingBot] = useState(false);
 
   const me = players.find((p) => p.user_id === currentUserId);
   const isHost = me?.is_host || (players.length > 0 && (players[0].user_id === currentUserId || !me));
@@ -34,25 +32,30 @@ export default function Lobby({ room, players, currentUserId, onStartGame, onUpd
       return;
     }
 
-    setLoading(true);
-    const card = generateRandomSurvivorCard();
-    const botNamesPool = BOT_NAMES[selectedBotPersonality];
-    const name = botNamesPool[Math.floor(Math.random() * botNamesPool.length)];
+    setLoadingBot(true);
+    const profile = await generateUniqueBotProfile(room.catastrophe_title || undefined);
 
     await supabase.from('bunker_players').insert({
       room_id: room.id,
       user_id: crypto.randomUUID(),
-      nickname: `${name} [ИИ]`,
+      nickname: profile.nickname,
       is_bot: true,
-      bot_personality: selectedBotPersonality,
+      bot_personality: 'unique',
       is_host: false,
       is_ready: true,
-      ...card,
+      profession: profile.profession,
+      health: profile.health,
+      hobby: profile.hobby,
+      phobia: profile.phobia,
+      luggage: profile.luggage,
+      extra_info: profile.extra_info,
+      special_card: profile.special_card,
+      backstory: profile.backstory,
+      temperament: profile.temperament,
       revealed_fields: ['profession'],
     });
 
-    setLoading(false);
-    setShowBotModal(false);
+    setLoadingBot(false);
   };
 
   const handleBunkerSizeChange = async (delta: number) => {
@@ -154,11 +157,21 @@ export default function Lobby({ room, players, currentUserId, onStartGame, onUpd
           {isHost && (
             <div className="pt-2 space-y-2">
               <button
-                onClick={() => setShowBotModal(true)}
-                className="w-full py-2.5 px-4 bg-zinc-800 hover:bg-zinc-700 text-sky-400 border border-sky-500/30 rounded-lg text-sm font-semibold flex items-center justify-center space-x-2 transition"
+                onClick={handleAddBot}
+                disabled={loadingBot || players.length >= room.max_players}
+                className="w-full py-2.5 px-4 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-sky-400 border border-sky-500/30 rounded-lg text-sm font-semibold flex items-center justify-center space-x-2 transition"
               >
-                <Bot className="w-4 h-4" />
-                <span>+ Добавить ИИ-Бота</span>
+                {loadingBot ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-sky-400" />
+                    <span>ГЕНЕРАЦИЯ ВЫЖИВШЕГО...</span>
+                  </>
+                ) : (
+                  <>
+                    <Bot className="w-4 h-4" />
+                    <span>+ Добавить ИИ-Выжившего</span>
+                  </>
+                )}
               </button>
             </div>
           )}
@@ -201,9 +214,9 @@ export default function Lobby({ room, players, currentUserId, onStartGame, onUpd
                         </span>
                       )}
                     </div>
-                    {p.is_bot && (
-                      <div className="text-xs text-sky-400/80 uppercase font-mono-data">
-                        Тип ИИ: {p.bot_personality}
+                    {p.is_bot && p.backstory && (
+                      <div className="text-[11px] text-zinc-400 font-mono-data line-clamp-1 italic max-w-xs">
+                        «{p.backstory}»
                       </div>
                     )}
                   </div>
@@ -250,84 +263,6 @@ export default function Lobby({ room, players, currentUserId, onStartGame, onUpd
           </div>
         </div>
       </div>
-
-      {/* Add Bot Selector Modal */}
-      {showBotModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl max-w-md w-full p-6 space-y-4">
-            <div className="flex justify-between items-center border-b border-zinc-800 pb-3">
-              <h3 className="text-lg font-bold text-zinc-100 flex items-center space-x-2">
-                <Bot className="w-5 h-5 text-sky-400" />
-                <span>Выбор Психотипа ИИ-Бота</span>
-              </h3>
-              <button onClick={() => setShowBotModal(false)} className="text-zinc-400 hover:text-zinc-100">
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              <label
-                onClick={() => setSelectedBotPersonality('cynic')}
-                className={`p-3 rounded-lg border cursor-pointer block transition ${
-                  selectedBotPersonality === 'cynic'
-                    ? 'bg-amber-950/30 border-amber-500 text-amber-200'
-                    : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700'
-                }`}
-              >
-                <div className="font-bold text-sm">🟡 Циник (Cynic)</div>
-                <div className="text-xs text-zinc-400 mt-1">
-                  Оценивает людей строго по сухому КПД профессии и полезности инструментов.
-                </div>
-              </label>
-
-              <label
-                onClick={() => setSelectedBotPersonality('panic')}
-                className={`p-3 rounded-lg border cursor-pointer block transition ${
-                  selectedBotPersonality === 'panic'
-                    ? 'bg-rose-950/30 border-rose-500 text-rose-200'
-                    : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700'
-                }`}
-              >
-                <div className="font-bold text-sm">🔴 Паникер (Panic)</div>
-                <div className="text-xs text-zinc-400 mt-1">
-                  Эмоционален, жалуется на недостаток ресурсов, требует выгонять слабых.
-                </div>
-              </label>
-
-              <label
-                onClick={() => setSelectedBotPersonality('strategist')}
-                className={`p-3 rounded-lg border cursor-pointer block transition ${
-                  selectedBotPersonality === 'strategist'
-                    ? 'bg-sky-950/30 border-sky-500 text-sky-200'
-                    : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700'
-                }`}
-              >
-                <div className="font-bold text-sm">🔵 Стратег (Strategist)</div>
-                <div className="text-xs text-zinc-400 mt-1">
-                  Рассудителен, считает баланс специалистов и выстраивает союзы.
-                </div>
-              </label>
-            </div>
-
-            <div className="pt-2 flex justify-end space-x-2">
-              <button
-                onClick={() => setShowBotModal(false)}
-                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-sm font-medium"
-              >
-                Отмена
-              </button>
-              <button
-                onClick={handleAddBot}
-                disabled={loading}
-                className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded text-sm font-bold flex items-center space-x-1"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Добавить Бота</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

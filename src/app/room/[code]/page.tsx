@@ -80,29 +80,49 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
     };
   }, [room?.id]);
 
-  // Trigger AI Bot turns when phase changes to debate or voting
+  // Autonomous AI Bot debate loop
   useEffect(() => {
-    if (!room || !players.length) return;
+    if (!room || room.status !== 'debate' || !players.length) return;
     const me = players.find((p) => p.user_id === currentUserId);
-    if (!me?.is_host) return; // Only host triggers bot API calls to prevent duplicate triggers
+    if (!me?.is_host) return;
 
     const botPlayers = players.filter((p) => p.is_bot && !p.is_eliminated);
     if (botPlayers.length === 0) return;
 
-    if (room.status === 'debate' || room.status === 'voting') {
-      botPlayers.forEach((bot) => {
+    // Trigger initial speeches
+    botPlayers.forEach((bot, idx) => {
+      setTimeout(() => {
         fetch('/api/bot-turn', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             roomId: room.id,
             botUserId: bot.user_id,
-            phase: room.status,
+            phase: 'debate',
           }),
-        }).catch((err) => console.warn('Bot turn trigger error:', err));
-      });
-    }
-  }, [room?.status, players, currentUserId]);
+        }).catch((err) => console.warn('Bot speech error:', err));
+      }, idx * 2500);
+    });
+
+    // Periodic autonomous bot banter interval every 14 seconds
+    const interval = setInterval(() => {
+      const activeBots = players.filter((p) => p.is_bot && !p.is_eliminated);
+      if (activeBots.length === 0) return;
+      const speakerBot = activeBots[Math.floor(Math.random() * activeBots.length)];
+
+      fetch('/api/bot-turn', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomId: room.id,
+          botUserId: speakerBot.user_id,
+          phase: 'debate',
+        }),
+      }).catch((err) => console.warn('Autonomous bot debate error:', err));
+    }, 14000);
+
+    return () => clearInterval(interval);
+  }, [room?.status, room?.id, players, currentUserId]);
 
   const fetchRoomData = async () => {
     const { data: rData } = await supabase.from('bunker_rooms').select('*').eq('code', code).single();

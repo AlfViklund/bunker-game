@@ -36,7 +36,7 @@ export default function SurvivorCard({ player, isCurrentPlayer, onRevealField }:
           {isCurrentPlayer && <span className="text-xs text-emerald-400 font-mono-data font-bold">(Вы)</span>}
           {player.is_bot && (
             <span className="text-[10px] bg-sky-950 text-sky-400 border border-sky-800 px-1.5 py-0.5 rounded font-mono-data">
-              ИИ [{player.bot_personality}]
+              ИИ [Живой Выживший]
             </span>
           )}
         </div>
@@ -50,6 +50,14 @@ export default function SurvivorCard({ player, isCurrentPlayer, onRevealField }:
           </div>
         )}
       </div>
+
+      {/* Backstory Banner if available */}
+      {player.backstory && (
+        <div className="p-2.5 bg-zinc-950/80 border border-zinc-800/80 rounded-lg text-xs text-zinc-300 font-mono-data space-y-1">
+          <div className="text-[10px] text-sky-400 font-bold uppercase">История Выжившего:</div>
+          <div className="leading-relaxed italic text-zinc-400">«{player.backstory}»</div>
+        </div>
+      )}
 
       {/* Grid of 7 Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
