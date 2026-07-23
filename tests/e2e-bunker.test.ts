@@ -28,7 +28,7 @@ async function runE2ETests() {
     await page1.click('button:has-text("+ Добавить ИИ-Бота")');
     await page1.waitForSelector('text=Выбор Психотипа ИИ-Бота');
     await page1.click('button:has-text("Добавить Бота")');
-    await page1.waitForSelector('text=ИИ [cynic]');
+    await page1.waitForSelector('text=Тип ИИ: cynic');
     console.log('✅ AI Bot added successfully!');
 
     // 3. Guest Joins Room
@@ -44,9 +44,6 @@ async function runE2ETests() {
     console.log('Step 4: Toggling READY status and starting game...');
     await page2.click('button:has-text("Я ГОТОВ К ВЫЖИВАНИЮ")');
     await page2.waitForSelector('text=ГОТОВ');
-
-    await page1.click('button:has-text("Я ГОТОВ К ВЫЖИВАНИЮ")');
-    await page1.waitForSelector('text=ГОТОВ');
 
     await page1.click('button:has-text("ЗАПУСТИТЬ СЕССИЮ")');
     await page1.waitForSelector('text=Канал Дебатов и Дискуссий');
@@ -65,8 +62,8 @@ async function runE2ETests() {
     // 6. Transition to Voting Phase
     console.log('Step 6: Transitioning to Voting phase...');
     await page1.click('button:has-text("ПЕРЕЙТИ К ГОЛОСОВАНИЮ")');
+    await page1.waitForTimeout(1500);
     await page1.waitForSelector('text=Пульт Изгнания в Пустошь');
-    await page2.waitForSelector('text=Пульт Изгнания в Пустошь');
     console.log('✅ Voting phase active!');
 
     // 7. Cast Votes

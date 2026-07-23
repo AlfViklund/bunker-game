@@ -127,8 +127,20 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
     if (data) setVotes(data);
   };
 
+  const handleTogglePhase = async () => {
+    if (!room) return;
+    const nextStatus = room.status === 'debate' ? 'voting' : 'debate';
+    setRoom((prev) => (prev ? { ...prev, status: nextStatus } : null));
+
+    await supabase
+      .from('bunker_rooms')
+      .update({ status: nextStatus })
+      .eq('id', room.id);
+  };
+
   const handleStartGame = async () => {
     if (!room) return;
+    setRoom((prev) => (prev ? { ...prev, status: 'debate' } : null));
     await supabase.from('bunker_rooms').update({ status: 'debate' }).eq('id', room.id);
   };
 
@@ -223,12 +235,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
         <div className="flex items-center space-x-3">
           {room.status !== 'lobby' && room.status !== 'epilogue' && (
             <button
-              onClick={() =>
-                supabase
-                  .from('bunker_rooms')
-                  .update({ status: room.status === 'debate' ? 'voting' : 'debate' })
-                  .eq('id', room.id)
-              }
+              onClick={handleTogglePhase}
               className="text-xs px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 rounded font-mono-data transition"
             >
               {room.status === 'debate' ? 'ПЕРЕЙТИ К ГОЛОСОВАНИЮ ➔' : '◄ ВЕРНУТЬСЯ К ДЕБАТАМ'}
