@@ -15,7 +15,6 @@ export function getOrCreateGuestUser() {
   }
 
   let guestId = localStorage.getItem('bunker_guest_id');
-  // Ensure existing guestId is a valid UUID
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!guestId || !uuidRegex.test(guestId)) {
     guestId = generateUUID();
@@ -23,10 +22,16 @@ export function getOrCreateGuestUser() {
   }
 
   let savedNick = localStorage.getItem('bunker_guest_nick');
-  if (!savedNick) {
+  if (!savedNick || !savedNick.trim()) {
     savedNick = `Выживший_${Math.floor(1000 + Math.random() * 9000)}`;
     localStorage.setItem('bunker_guest_nick', savedNick);
   }
 
   return { userId: guestId, nickname: savedNick };
+}
+
+export function saveGuestNickname(nick: string) {
+  if (typeof window !== 'undefined' && nick && nick.trim()) {
+    localStorage.setItem('bunker_guest_nick', nick.trim());
+  }
 }

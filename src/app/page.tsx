@@ -6,9 +6,9 @@ import { supabase } from '@/lib/supabase';
 import { generateRandomSurvivorCard } from '@/lib/cardBank';
 import { generateDynamicCatastrophe } from '@/lib/pollinations';
 import FriendsSidebar from '@/components/FriendsSidebar';
-import { Shield, Play, Users, KeyRound, Radio, Sparkles } from 'lucide-react';
+import { Shield, Play, Users, KeyRound, Radio, Sparkles, UserCheck } from 'lucide-react';
 
-import { getOrCreateGuestUser } from '@/lib/user';
+import { getOrCreateGuestUser, saveGuestNickname } from '@/lib/user';
 
 export default function HomePage() {
   const router = useRouter();
@@ -17,21 +17,63 @@ export default function HomePage() {
   const [roomCodeInput, setRoomCodeInput] = useState<string>('');
   const [isFriendsOpen, setIsFriendsOpen] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
+  const [totalUniquePlayers, setTotalUniquePlayers] = useState<number>(0);
+  const [onlineCount, setOnlineCount] = useState<number>(1);
 
   useEffect(() => {
     const { userId: uid, nickname: nick } = getOrCreateGuestUser();
     setUserId(uid);
     setNickname(nick);
+
+    // Fire & forget room cleanup for stale sessions
+    fetch('/api/cleanup-rooms', { method: 'POST' }).catch(() => {});
+
+    // Fetch total unique human players
+    const fetchTotalPlayers = async () => {
+      const { data } = await supabase
+        .from('bunker_players')
+        .select('user_id')
+        .eq('is_bot', false);
+
+      if (data) {
+        const unique = new Set(data.map((p) => p.user_id)).size;
+        setTotalUniquePlayers(unique);
+      }
+    };
+
+    fetchTotalPlayers();
+
+    // Supabase Realtime Global Presence for online count
+    const presenceChannel = supabase.channel('bunker_global_presence', {
+      config: { presence: { key: uid } },
+    });
+
+    presenceChannel
+      .on('presence', { event: 'sync' }, () => {
+        const state = presenceChannel.presenceState();
+        const count = Object.keys(state).length;
+        setOnlineCount(Math.max(1, count));
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await presenceChannel.track({ online_at: new Date().toISOString() });
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(presenceChannel);
+    };
   }, []);
 
   const handleUpdateNickname = (newNick: string) => {
     setNickname(newNick);
-    localStorage.setItem('bunker_guest_nick', newNick);
+    saveGuestNickname(newNick);
   };
 
   const handleCreateRoom = async () => {
-    const { userId: activeUid } = getOrCreateGuestUser();
     const activeNick = nickname.trim() || 'Выживший';
+    saveGuestNickname(activeNick);
+    const { userId: activeUid } = getOrCreateGuestUser();
     setLoading(true);
 
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -75,8 +117,9 @@ export default function HomePage() {
 
   const handleJoinRoom = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const { userId: activeUid } = getOrCreateGuestUser();
     const activeNick = nickname.trim() || 'Выживший';
+    saveGuestNickname(activeNick);
+    const { userId: activeUid } = getOrCreateGuestUser();
     if (!roomCodeInput.trim()) return;
 
     setLoading(true);
@@ -201,13 +244,36 @@ export default function HomePage() {
           </form>
         </div>
 
-        {/* Tactical Info Footer */}
-        <div className="p-3 bg-zinc-950 border border-zinc-800/80 rounded-lg flex items-center justify-between text-xs text-zinc-500 font-mono-data">
-          <div className="flex items-center space-x-1.5">
-            <Radio className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
-            <span>СЕРВЕР: ONLINE</span>
+        {/* Tactical Status & Live Analytics Bar */}
+        <div className="p-3.5 bg-zinc-900 border border-zinc-800 rounded-xl flex items-center justify-between font-mono-data text-xs shadow-xl">
+          {/* Left: Total Unique Players */}
+          <div className="flex items-center space-x-2.5">
+            <div className="p-2 bg-zinc-950 border border-zinc-800 rounded-lg text-sky-400">
+              <UserCheck className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">Реестр выживших</div>
+              <div className="text-zinc-200 font-bold text-sm">
+                {totalUniquePlayers} <span className="text-[10px] text-zinc-400 font-normal">всего</span>
+              </div>
+            </div>
           </div>
-          <span>ВЕРСИЯ: 1.0.0</span>
+
+          <div className="h-7 w-px bg-zinc-800" />
+
+          {/* Right: Currently Online */}
+          <div className="flex items-center space-x-2.5 text-right">
+            <div>
+              <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">Сигналы в эфире</div>
+              <div className="text-emerald-400 font-bold text-sm flex items-center justify-end space-x-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>{onlineCount} онлайн</span>
+              </div>
+            </div>
+            <div className="p-2 bg-zinc-950 border border-zinc-800 rounded-lg text-emerald-400">
+              <Radio className="w-4 h-4 animate-pulse" />
+            </div>
+          </div>
         </div>
       </main>
 
