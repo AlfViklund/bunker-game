@@ -32,7 +32,7 @@ export async function generateDynamicCatastrophe(): Promise<CatastropheScenario>
 - desc (подробное описание выживания 2-3 предложения)
 - imagePrompt (описание сцены на английском языке для генератора картинок, например: "post apocalyptic frozen underground bunker, tactical control room, cinematic render")`;
 
-  const systemPrompt = `Ты создатель атмосферой катастрофы про постапокалипсис. Верни строго JSON.`;
+  const systemPrompt = `Ты создатель атмосферной катастрофы про постапокалипсис. Верни строго JSON.`;
 
   try {
     const raw = await generatePollinationsText(prompt, systemPrompt);
@@ -68,6 +68,44 @@ export async function generateDynamicCatastrophe(): Promise<CatastropheScenario>
 }
 
 export async function generatePollinationsText(prompt: string, systemPrompt?: string, botContext?: { nickname?: string; profession?: string; backstory?: string }): Promise<string> {
+  // 1. Try OmniRoute local endpoint first (150ms latency, high quality, zero cost)
+  try {
+    const messages = [];
+    if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
+    messages.push({ role: 'user', content: prompt });
+
+    const oRes = await fetch('http://localhost:20128/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer sk-af6',
+      },
+      body: JSON.stringify({
+        model: 'gem36h',
+        messages,
+      }),
+    });
+
+    if (oRes.ok) {
+      const rawText = await oRes.text();
+      const lines = rawText.split('\n');
+      let fullContent = '';
+      for (const line of lines) {
+        if (line.startsWith('data: ') && line.trim() !== 'data: [DONE]') {
+          try {
+            const parsed = JSON.parse(line.substring(6));
+            const delta = parsed.choices?.[0]?.delta?.content;
+            if (delta) fullContent += delta;
+          } catch (e) {}
+        }
+      }
+      if (fullContent.trim().length > 3) {
+        return fullContent.trim();
+      }
+    }
+  } catch (e) {}
+
+  // 2. Try Pollinations text endpoint
   try {
     const fullPrompt = systemPrompt ? `${systemPrompt}\n\n${prompt}` : prompt;
     const url = `https://text.pollinations.ai/${encodeURIComponent(fullPrompt)}?model=openai`;
@@ -90,7 +128,7 @@ export async function generatePollinationsText(prompt: string, systemPrompt?: st
     console.warn('Pollinations Text fetch failed, using persona fallback', err);
   }
 
-  // Fallback response generator if network or API has issues
+  // 3. Fallback response generator if network or API has issues
   return generateFallbackBotReply(prompt, systemPrompt, botContext);
 }
 
@@ -99,11 +137,11 @@ function generateFallbackBotReply(prompt: string, systemPrompt?: string, botCont
   const prof = botContext?.profession || 'специалист';
 
   const VARIATION_FALLBACKS = [
-    `Как ${prof}, я уверен: в бункере важен калькулируемый учет каждого человека и навыка. Не стоит поддаваться панике.`,
-    `У меня есть опыт и реальные навыки (${prof}). Если мы выгоним меня, кто будет решать технические проблемы укрытия?`,
-    `Послушайте внимательно: ресурс бункера ограничен. Мы должны оставлять только тех, чьи знания спасут отряд от гибели!`,
-    `Я знаю, о чем говорю. Моя профессия (${prof}) — это прямое выживание в первые же месяцы после удара.`,
-    `Давайте без эмоций. Каждая кандидатура должна быть обоснована конкретной пользой для коллектива.`
+    `Слышьте, вы долго тут спорить собираетесь?! На улице минус пятьдесят, давайте решать по делу!`,
+    `У меня навык (${prof}) и я знаю, как его применить. Выкладывайте свои карты, не тяните время!`,
+    `Посмотрите на мои вещи — я здесь не ради разговоров. Если не берете меня, бункер без генерации останется!`,
+    `Я знаю свое дело (${prof}). Нам нужны выжившие с прикладными навыками, а не сопливые обещания.`,
+    `Вы затвором хлопать прекратите и карты открывайте — у нас кислород на исходе!`
   ];
 
   return VARIATION_FALLBACKS[Math.floor(Math.random() * VARIATION_FALLBACKS.length)];
